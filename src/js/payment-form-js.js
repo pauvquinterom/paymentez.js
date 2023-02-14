@@ -116,6 +116,7 @@ PaymentForm.CREDIT_CARD_NUMBER_PLACEHOLDER = "Número de tarjeta";
 PaymentForm.NAME_PLACEHOLDER = "Nombre del titular";
 PaymentForm.EMAIL_PLACEHOLDER = "E-mail";
 PaymentForm.CELLPHONE_PLACEHOLDER = "Celular";
+PaymentForm.POCKET_TYPE_AMOUNT = "Monto";
 PaymentForm.FISCAL_NUMBER_PLACEHOLDER = "Documento de Identificación";
 PaymentForm.EXPIRY_PLACEHOLDER = "MM / YY";
 PaymentForm.EXPIRY_NUMBER_OF_YEARS = 30;
@@ -472,7 +473,7 @@ PaymentForm.prototype.cardTypeFromNumberBin = function (number) {
   }
 };
 
-PaymentForm.prototype.setRequiredFields = function (required_fields) {
+PaymentForm.prototype.setRequiredFields = function (required_fields, type_pockets) {
   const form = this;
 
   if (!(required_fields && required_fields.length > 0)) {
@@ -498,7 +499,7 @@ PaymentForm.prototype.setRequiredFields = function (required_fields) {
         case 'fiscal_number_type':
           break;
         case 'pocket_type':
-          form.addPocketType();
+          form.addPocketTypes(type_pockets);
           break;
       }
     }
@@ -560,7 +561,8 @@ PaymentForm.prototype.successBinCallback = function (objResponse, form) {
   form.USE_OTP = objResponse.otp;
 
   // Validate required fields for bin
-  form.setRequiredFields(objResponse.required_fields);
+  let type_pockets = !objResponse.required_fields.includes("pocket_type") ? [] : objResponse.configuration.colsubsidio.type_pockets;
+  form.setRequiredFields(objResponse.required_fields, type_pockets);
 
   // Validate not required fields for bin
   form.setNoRequiredFields(objResponse.no_required_fields);
@@ -1984,12 +1986,71 @@ PaymentForm.prototype.removeVerificationContainer = function () {
   }
 };
 
-PaymentForm.prototype.addPocketType = function () {
+PaymentForm.prototype.addPocketTypes = function (type_pockets) {
+  const form = this;
+  console.log("vienes de aqui add pockets")
   if (!this.pocketTypeAdded()) {
-    this.initPocketTypeInput();
+    this.initPocketTypeInput(type_pockets);
     this.setupPocketTypeInput();
     this.setIconColour(this.iconColour);
   }
+  console.log("regresas?")
+  if (this.pocketTypeAdded()) {
+    console.log("holis")
+    let addPocketBtn = this.elem.find(".add-pocketType-btn");
+    addPocketBtn.click(function () {
+      console.log("hey");
+      form.setupPocketTypeContainer();
+    });
+  }
+};
+
+PaymentForm.prototype.addPocketAfterClick = function (type_pockets) {
+  let pocketTypes = {
+    "CSD1": "Cuota Monetaria",
+    "CSD2": "Subsidio Escolar",
+    "CSD3": "Bono Efectivo",
+    "CSD4": "Ahorros",
+    "CSD5": "Cupo Credito",
+    "CSD6": "Bono Lonchera",
+    "CSD7": "Bono Nacimiento",
+    "CSD8": "Mundo Digital",
+    "CSD9": "Adulto Mayor",
+    "CSD10": "Subsidio Familiar",
+    "CSD11": "Bolsillo Debito",
+  };
+
+  let pocketTypesAllowed = [];
+  type_pockets.forEach(element => pocketTypesAllowed.push({'code': element, "name": pocketTypes[element]}));
+  let pocketType = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<select class='pocketType' />");
+  let pocketAmount = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<input class='pocketType-amount' />");
+  let deletePocketBtn = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<button class='delete-pocketType-btn'>-</button>");
+
+  // Ensure the pocketTypeAmount element has a placeholder
+  if (!PaymentForm.elementHasAttribute(this.pocketAmount, "placeholder")) {
+    pocketAmount.attr("placeholder", PaymentForm.POCKET_TYPE_AMOUNT);
+  }
+  pocketAmount.attr("type", "number");
+  setTimeout(() => {
+    let pocketTypeSelectize = pocketType.selectize(
+      {
+        valueField: 'code',
+        labelField: 'name',
+        searchField: 'name',
+        options: pocketTypesAllowed
+      }
+    );
+    let pocketTypeSelectizeControl = pocketTypeSelectize[0].selectize;
+    pocketTypeSelectizeControl.setValue(pocketTypesAllowed[0])
+  }, 0);
+
+  pocketType.attr("placeholder", this.__('pocketType'));
+
+  let wrapper = this.elem.find(".pocket-type-wrapper");
+  let pocketContainer = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<div class='pocket-container'></div>");
+  pocketContainer.append(pocketAmount);
+  pocketContainer.append(pocketType);
+  pocketContainer.append(deletePocketBtn);
 };
 
 PaymentForm.prototype.removePocketType = function () {
@@ -2297,21 +2358,34 @@ PaymentForm.prototype.initBillingAddress = function () {
 /**
  * Initialise the pocket type input
  */
-PaymentForm.prototype.initPocketTypeInput = function () {
-  let pocketTypes = [
-    {'code': 'CSD1', 'name': 'Cuota Monetaria'},
-    {'code': 'CSD2', 'name': 'Subsidio Escolar'},
-    {'code': 'CSD3', 'name': 'Bono Efectivo'},
-    {'code': 'CSD4', 'name': 'Ahorros'},
-    {'code': 'CSD5', 'name': 'Cupo Credito'},
-    {'code': 'CSD6', 'name': 'Bono Lonchera'},
-    {'code': 'CSD7', 'name': 'Bono Nacimiento'},
-    {'code': 'CSD8', 'name': 'Mundo Digital'},
-    {'code': 'CSD9', 'name': 'Adulto Mayor'},
-  ]
+PaymentForm.prototype.initPocketTypeInput = function (type_pockets) {
+  let pocketTypes = {
+    "CSD1": "Cuota Monetaria",
+    "CSD2": "Subsidio Escolar",
+    "CSD3": "Bono Efectivo",
+    "CSD4": "Ahorros",
+    "CSD5": "Cupo Credito",
+    "CSD6": "Bono Lonchera",
+    "CSD7": "Bono Nacimiento",
+    "CSD8": "Mundo Digital",
+    "CSD9": "Adulto Mayor",
+    "CSD10": "Subsidio Familiar",
+    "CSD11": "Bolsillo Debito",
+  };
+
+  let pocketTypesAllowed = [];
+  type_pockets.forEach(element => pocketTypesAllowed.push({'code': element, "name": pocketTypes[element]}));
 
   // Pocket types
   this.pocketType = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<select class='pocketType' />");
+  this.pocketAmount = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<input class='pocketType-amount' />");
+  this.deletePocketBtn = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<button class='delete-pocketType-btn'>-</button>");
+  this.addPocketBtn = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<button class='add-pocketType-btn'>+</button>");
+  // Ensure the pocketTypeAmount element has a placeholder
+  if (!PaymentForm.elementHasAttribute(this.pocketAmount, "placeholder")) {
+    this.pocketAmount.attr("placeholder", PaymentForm.POCKET_TYPE_AMOUNT);
+  }
+  this.pocketAmount.attr("type", "number");
   let $this = this;
   setTimeout(() => {
     let pocketTypeSelectize = $this.pocketType.selectize(
@@ -2319,11 +2393,11 @@ PaymentForm.prototype.initPocketTypeInput = function () {
         valueField: 'code',
         labelField: 'name',
         searchField: 'name',
-        options: pocketTypes
+        options: pocketTypesAllowed
       }
     );
     let pocketTypeSelectizeControl = pocketTypeSelectize[0].selectize;
-    pocketTypeSelectizeControl.setValue(pocketTypes[0])
+    pocketTypeSelectizeControl.setValue(pocketTypesAllowed[0])
   }, 0);
 
   this.pocketType.attr("placeholder", this.__('pocketType'));
@@ -2801,8 +2875,14 @@ PaymentForm.prototype.setupBillingAddress = function () {
 PaymentForm.prototype.setupPocketTypeInput = function () {
   this.elem.append("<div class='pocket-type-container'></div>");
   let container = this.elem.find(".pocket-type-container");
-  container.append(`<p><span>${this.__('pocketTypeRequired')}</span></p>`);
-  container.append(this.pocketType);
+  container.append(`<p class='pocket-required'><span>${this.__('pocketTypeRequired')}</span></p>`);
+  container.append("<div class='pocket-type-wrapper'></div>");
+  container.append("<div class='add-pocket-container'></div>");
+  let addPocketContainer = this.elem.find(".add-pocket-container");
+  addPocketContainer.append(this.addPocketBtn);
+  addPocketContainer.append(`<p class='add-pocket'>${this.__('addPocket')}</p>`);
+  this.setupPocketTypeContainer();
+  
 
   // Events
   let $this = this;
@@ -2810,6 +2890,17 @@ PaymentForm.prototype.setupPocketTypeInput = function () {
     $this.refreshPocketTypeValidation();
   });
 };
+
+PaymentForm.prototype.setupPocketTypeContainer = function () {
+  let wrapper = this.elem.find(".pocket-type-wrapper");
+  // wrapper.append("<div class='pocket-container'></div>");
+  let pocketContainer = PaymentForm.detachOrCreateElement(this.elem, ".pocketType", "<div class='pocket-container'></div>");
+  // let pocketContainer = this.elem.find(".pocket-container");
+  pocketContainer.append(this.pocketAmount);
+  // pocketContainer.append(this.pocketType);
+  pocketContainer.append(this.deletePocketBtn);
+  
+}
 
 // ==========================================================================================
 

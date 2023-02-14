@@ -9,8 +9,9 @@ translations['en'] = {
   billingAddressCountry: 'Country',
   billingAddressDistrict: 'District',
   billingAddressAdditional: 'Additional Information',
-  pocketTypeRequired: 'Pocket Type is required',
+  pocketTypeRequired: 'Pocket Types',
   pocketType: 'Pocket Type',
+  addPocket: 'Add pocket',
 }
 
 translations['es'] = {
@@ -23,8 +24,9 @@ translations['es'] = {
   billingAddressCountry: 'País',
   billingAddressDistrict: 'Distrito',
   billingAddressAdditional: 'Información adicional',
-  pocketTypeRequired: 'Se requiere el tipo de bolsillo',
+  pocketTypeRequired: 'Bolsillos',
   pocketType: 'Tipo de bolsillo',
+  addPocket: 'Agregar bolsillo',
 }
 
 translations['pt'] = {
@@ -38,7 +40,8 @@ translations['pt'] = {
   billingAddressDistrict: 'District',
   billingAddressAdditional: 'Additional',
   pocketTypeRequired: 'Pocket Type is required',
-  pocketType: 'Pocket Type',
+  pocketType: 'Pocket Types',
+  addPocket: 'Add pocket'
 }
 
 
