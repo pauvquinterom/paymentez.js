@@ -3428,6 +3428,36 @@ Payment.COUNTRIES = [
         "code": "VID",
         "name": "Vichada"
       }
+    ],
+    "fiscal_number_types": [
+      {
+        "code": "CC",
+        "name": "Cédula de ciudadanía"
+      },
+      {
+        "code": "CE",
+        "name": "Cédula de extranjería"
+      },
+      {
+        "code": "NIT",
+        "name": "Número de identificación tributario"
+      },
+      {
+        "code": "TI",
+        "name": "Tarjeta de identidad"
+      },
+      {
+        "code": "PP",
+        "name": "Pasaporte"
+      },
+      {
+        "code": "DE",
+        "name": "Documento de identificación extranjero"
+      },
+      {
+        "code": "RC",
+        "name": "Registro civil de nacimiento"
+      }
     ]
   },
   {

@@ -38,6 +38,7 @@ function PaymentForm(elem) {
   this.captureBillingAddress = this.elem.data("capture-billing-address") ? this.elem.data("capture-billing-address") : false;
   this.allowed_card_types = this.elem.data("allowed-card-types") ? this.elem.data("allowed-card-types").toString().split(",") : false;
   this.captureFiscalNumber = this.elem.data("capture-fiscal-number") ? this.elem.data("capture-fiscal-number") : false;
+  this.countryFiscalNumberType = this.elem.data("country-fiscal-number-type") ? this.elem.data("country-fiscal-number-type") : false;
 
   // This is for support the first conf 'exclusive-types', try to delete in new version when nobody use it
   let allowed_card_brands_options = this.elem.data("exclusive-types") || this.elem.data("allowed-card-brands");
@@ -56,6 +57,7 @@ function PaymentForm(elem) {
   this.initExpiryYearInput();
   this.initCvcInput();
   this.initBillingAddress();
+  this.initFiscalNumberTypeOptions();
   if (this.captureFiscalNumber) {
     this.initFiscalNumberInput();
   }
@@ -94,6 +96,7 @@ function PaymentForm(elem) {
   this.setupExpiryInput();
   this.setupCvcInput();
   this.setupBillingAddress();
+  this.setupFiscalNumberTypeOptions();
   if (this.captureFiscalNumber) {
     this.setupFiscalNumberInput();
   }
@@ -959,12 +962,13 @@ PaymentForm.prototype.isValidData = function () {
   let is_cellphone_valid = this.refreshCellPhoneValidation();
   let is_card_number_valid = this.refreshCardNumberValidation();
   let is_fiscal_number_valid = this.refreshFiscalNumberValidation();
+  let is_fical_number_type_valid = this.refreshFiscalNumberTypeValidation();
   let is_nip_valid = this.refreshNipValidation();
   let is_valid_billing_address = this.isValidBillingAddress();
   let is_valid_pocket_type = this.isPocketTypeValid();
   return is_date_valid && is_cvc_valid && is_card_holder_valid && is_card_number_valid
     && is_email_valid && is_cellphone_valid && is_fiscal_number_valid && is_nip_valid
-    && is_valid_billing_address && is_valid_pocket_type;
+    && is_valid_billing_address && is_valid_pocket_type && is_fical_number_type_valid;
 };
 
 PaymentForm.prototype.refreshCvcValidation = function () {
@@ -1023,6 +1027,18 @@ PaymentForm.prototype.refreshFiscalNumberValidation = function () {
     return true;
   } else if (this.fiscalNumberAdded() && !this.isFiscalNumberValid()) {
     this.fiscalNumberInput.parent().addClass("has-error");
+    return false;
+  } else {
+    return true;
+  }
+};
+
+PaymentForm.prototype.refreshFiscalNumberTypeValidation = function () {
+  if (this.fiscalNumberTypeAdded() && this.isFiscalNumberTypeValid()) {
+    this.fiscalNumberType.parent().removeClass("has-error");
+    return true;
+  } else if (this.fiscalNumberTypeAdded() && !this.isFiscalNumberTypeValid()) {
+    this.fiscalNumberType.parent().addClass("has-error");
     return false;
   } else {
     return true;
@@ -1249,6 +1265,17 @@ PaymentForm.prototype.isFiscalNumberValid = function () {
 };
 
 /**
+ * Is the given input a valid FiscalNumberType?
+ *
+ * @returns {boolean}
+ */
+PaymentForm.prototype.isFiscalNumberTypeValid = function () {
+  if (!this.countryFiscalNumberType) return true
+  let value = this.getFiscalNumberType();
+  return value !== null && value.length >= 2;
+};
+
+/**
  * Is the given input a valid verification?
  *
  * @returns {boolean}
@@ -1336,6 +1363,16 @@ PaymentForm.prototype.isPocketTypeInstallmentsValid = function (index) {
 PaymentForm.prototype.fiscalNumberAdded = function () {
   let fNumber = this.elem.find(".fiscal-number-wrapper");
   return fNumber.length >= 1;
+};
+
+/**
+ * Validate if exists the fiscal number type in the form
+ *
+ * @returns {boolean}
+ */
+PaymentForm.prototype.fiscalNumberTypeAdded = function () {
+  let fNumberType = this.elem.find(".fiscal-number-type-wrapper");
+  return fNumberType.length >= 1;
 };
 
 /**
@@ -1496,6 +1533,9 @@ PaymentForm.prototype.getCard = function (e) {
   if (this.isPocketTypeAdded()) {
     data.card.brand_options = this.getPocketTypeData()
   }
+  if (this.fiscalNumberTypeAdded()) {
+    data.card.fiscal_number_type = this.getFiscalNumberType()
+  }
   return data;
 
 };
@@ -1565,6 +1605,19 @@ PaymentForm.prototype.getFiscalNumber = function () {
     return this.fiscalNumberInput.val();
   } else {
     return '';
+  }
+};
+
+/**
+ * Get the fiscal number type selected.
+ *
+ * @returns {string}
+ */
+PaymentForm.prototype.getFiscalNumberType = function () {
+  if (this.fiscalNumberTypeAdded()) {
+    return this.fiscalNumberType.val().trim();
+  } else {
+    return null;
   }
 };
 
@@ -1822,6 +1875,11 @@ PaymentForm.prototype.blockForm = function () {
     this.fiscalNumberInput.attr("disabled", "disabled");
   }
 
+  if (this.fiscalNumberTypeAdded()) {
+    this.fiscalNumberType.val("");
+    this.fiscalNumberType.attr("disabled", "disabled");
+  }
+
   if (this.nipWrapperAdded()) {
     this.cleanNipInput();
     this.nipInput.attr("disabled", "disabled");
@@ -1854,6 +1912,9 @@ PaymentForm.prototype.unBlockForm = function () {
   this.cvcInput.removeAttr("disabled");
   if (this.fiscalNumberAdded()) {
     this.fiscalNumberInput.removeAttr("disabled");
+  }
+  if(this.fiscalNumberTypeAdded()) {
+    this.fiscalNumberType.removeAttr("disabled");
   }
   if (this.nipWrapperAdded()) {
     this.cleanNipInput();
@@ -1990,6 +2051,44 @@ PaymentForm.prototype.refreshBillingAddressStateOptions = function () {
 };
 
 /**
+ * Get fiscal number type options
+ */
+
+PaymentForm.prototype.refreshFiscalNumberTypeOptions = function () {
+  const country_fiscal_number_types = Payment.getCountryByCountryCode(this.countryFiscalNumberType);
+  if (country_fiscal_number_types === undefined) {
+    this.fiscalNumberTypeSelectizeControl.clear();
+    this.fiscalNumberTypeSelectizeControl.clearOptions();
+    return
+  }
+  let fiscal_number_types = country_fiscal_number_types.fiscal_number_types;
+  if (fiscal_number_types === undefined) {
+    fiscal_number_types = [{
+      code: country_fiscal_number_types.code,
+      name: country_fiscal_number_types.name,
+    }]
+  }
+
+  if (this.fiscalNumberTypeSelectizeControl === undefined) {
+    let fiscalNumberTypeSelectize = this.fiscalNumberType.selectize(
+      {
+        valueField: 'code',
+        labelField: 'name',
+        searchField: 'name',
+        options: fiscal_number_types,
+      }
+    );
+    this.fiscalNumberTypeSelectizeControl = fiscalNumberTypeSelectize[0].selectize;
+    this.fiscalNumberTypeSelectizeControl.setValue(fiscal_number_types[0].code);
+  } else {
+    this.fiscalNumberTypeSelectizeControl.clear();
+    this.fiscalNumberTypeSelectizeControl.clearOptions();
+    this.fiscalNumberTypeSelectizeControl.addOption(states);
+    this.fiscalNumberTypeSelectizeControl.setValue(states[0].code);
+  }
+};
+
+/**
  *
  */
 PaymentForm.prototype.refreshCellPhoneFormat = function () {
@@ -2011,6 +2110,20 @@ PaymentForm.prototype.addFiscalNumber = function () {
 PaymentForm.prototype.removeFiscalNumber = function () {
   if (this.fiscalNumberAdded()) {
     this.elem.find(".fiscal-number-wrapper").remove();
+  }
+};
+
+PaymentForm.prototype.addFiscalNumberType = function () {
+  if (!this.fiscalNumberTypeAdded()) {
+    this.initFiscalNumberTypeOptions();
+    this.setupFiscalNumberTypeOptions();
+    this.setIconColour(this.iconColour);
+  }
+};
+
+PaymentForm.prototype.removeFiscalNumberType = function () {
+  if (this.fiscalNumberTypeAdded()) {
+    this.elem.find(".fiscal-number-type-wrapper").remove();
   }
 };
 
@@ -2132,6 +2245,11 @@ PaymentForm.prototype.addVerificationContainer = function () {
     if (this.fiscalNumberAdded()) {
       this.fiscalNumberInput.attr("disabled", "disabled")
     }
+
+    if (this.fiscalNumberTypeAdded()) {
+      this.fiscalNumberType.attr("disabled", "disabled")
+    }
+
     if (this.nipWrapperAdded()) {
       this.nipInput.attr("disabled", "disabled")
     }
@@ -2175,6 +2293,10 @@ PaymentForm.prototype.unBlockVerificationContainer = function () {
 
     if (this.fiscalNumberAdded()) {
       this.fiscalNumberInput.removeAttr('disabled');
+    }
+
+    if (this.fiscalNumberTypeAdded()) {
+      this.fiscalNumberType.removeAttr('disabled');
     }
     if (this.nipWrapperAdded()) {
       this.nipInput.removeAttr('disabled');
@@ -2364,6 +2486,11 @@ PaymentForm.prototype.initFiscalNumberInput = function () {
 
   // Find or create the fiscal number input element
   this.fiscalNumberInput = PaymentForm.detachOrCreateElement(this.elem, ".fiscal-number", "<input class='fiscal-number' />");
+  if (this.countryFiscalNumberType) {
+    this.fiscalNumberInput.addClass("with-type");
+  } else {
+    this.fiscalNumberInput.addClass("no-type");
+  }
   // Ensure the fiscal number element has a field name
   if (!PaymentForm.elementHasAttribute(this.fiscalNumberInput, "name")) {
     this.fiscalNumberInput.attr("name", "fiscal-number");
@@ -2380,6 +2507,21 @@ PaymentForm.prototype.initFiscalNumberInput = function () {
   this.fiscalNumberInput.attr("autocorrect", "off");
   this.fiscalNumberInput.attr("spellcheck", "off");
   this.fiscalNumberInput.attr("autocapitalize", "off");
+};
+
+/**
+ * Initialise the fiscal number type options
+ */
+PaymentForm.prototype.initFiscalNumberTypeOptions = function () {
+  if (!this.countryFiscalNumberType || !this.captureFiscalNumber) return
+
+  // Fiscal number options
+  this.fiscalNumberType = PaymentForm.detachOrCreateElement(this.elem, ".fiscalNumberType", "<select class='fiscalNumberType' />");
+  setTimeout(() => {
+    this.refreshFiscalNumberTypeOptions();
+  }, 0);
+
+  this.fiscalNumberType.attr("placeholder", this.__('fiscalNumberType'));
 };
 
 /**
@@ -2736,13 +2878,44 @@ PaymentForm.prototype.setupCvcInput = function () {
   });
 };
 
-PaymentForm.prototype.setupFiscalNumberInput = function () {
+PaymentForm.prototype.setupFiscalNumberTypeOptions = function () {
+  if (!this.countryFiscalNumberType || !this.captureFiscalNumber) return
+  // this.elem.append("<div class='fiscal-number-container'><div class='fiscal-number-wrapper'></div></div>");
+  // let wrapper = this.elem.find(".fiscal-number-wrapper");
   let card = this.elem.find(".card-number-wrapper");
-  card.after("<div class='fiscal-number-wrapper'></div>");
+  card.after("<div class='fiscal-number-container'><div class='fiscal-number-wrapper'></div></div>");
   let wrapper = this.elem.find(".fiscal-number-wrapper");
-  wrapper.append(this.fiscalNumberInput);
+  wrapper.append(this.fiscalNumberType);
   wrapper.append("<div class='icon'></div>");
   wrapper.find(".icon").append(PaymentForm.USER_SVG);
+
+  // Events for fiscalNumberType
+  let $this = this;
+  this.fiscalNumberType.blur(function () {
+    $this.refreshFiscalNumberTypeValidation();
+  });
+};
+
+PaymentForm.prototype.setupFiscalNumberInput = function () {
+  let fNcontainer = this.elem.find(".fiscal-number-container");
+  let wrapper;
+  if (fNcontainer.length) {
+    if (fNcontainer.find(".fiscal-number-wrapper").length) {
+      wrapper = this.elem.find(".fiscal-number-wrapper");
+    }
+  } else {
+    let card = this.elem.find(".card-number-wrapper");
+    card.after("<div class='fiscal-number-container'><div class='fiscal-number-wrapper'></div></div>");
+    wrapper = this.elem.find(".fiscal-number-wrapper");
+  }
+  wrapper.append(this.fiscalNumberInput);
+  wrapper.append("<div class='icon icon-fiscal'></div>");
+  if (this.countryFiscalNumberType) {
+    let icon = wrapper.find(".icon-fiscal");
+    icon.addClass('with-type');
+  }
+  wrapper.find(".icon-fiscal").append(PaymentForm.USER_SVG);
+  
 
   // Events for fiscalNumberInput
   let $this = this;
@@ -2750,6 +2923,7 @@ PaymentForm.prototype.setupFiscalNumberInput = function () {
     $this.refreshFiscalNumberValidation();
   });
 };
+
 
 PaymentForm.prototype.setupNipInput = function () {
   let fiscal = this.elem.find(".fiscal-number-wrapper");

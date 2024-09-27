@@ -8,6 +8,10 @@
   pointer-events: none;
 }
 
+.payment-form .fiscal-number-wrapper .icon-fiscal.with-type {
+  margin-left: 30%;
+}
+
 .payment-form .cellphone-wrapper .icon-phone {
   margin-left: 30%;
 }

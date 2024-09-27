@@ -7,6 +7,7 @@
 [payment_version_2] .payment-form input.cvc,
 [payment_version_2] .payment-form input.email,
 [payment_version_2] .payment-form input.fiscal-number,
+[payment_version_2] .payment-form .fiscalNumberType .selectize-input,
 [payment_version_2] .payment-form input.name,
 [payment_version_2] .payment-form input.nip,
 [payment_version_2] .payment-form input.validation-option,

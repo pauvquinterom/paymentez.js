@@ -1,0 +1,25 @@
+.payment-form .fiscal-number-wrapper {
+    position: relative;
+  }
+  
+  .payment-form .fiscal-number-wrapper .fiscalNumberType {
+    display: inline-block;
+    width: 28%;
+    margin-right: 2%;
+  }
+  
+  .payment-form .fiscal-number-wrapper .fiscal-number.no-type {
+    display: inline-block;
+    width: 100%;
+  }
+
+  .payment-form .fiscal-number-wrapper .fiscal-number.with-type {
+    display: inline-block;
+    width: 70%;
+  }
+  
+  .payment-form .fiscal-number-wrapper .fiscalNumberType .selectize-input {
+    padding-left: 38px;
+    padding-right: 15px;
+    width: 100%;
+  }
